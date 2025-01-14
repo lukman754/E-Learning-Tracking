@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "E-Learning Unpam",
+  "version": "1.0",
+  "description": "Untuk melacak forum diskusi yang belum dikerjakan",
+  "permissions": ["scripting"],
+  "host_permissions": [
+    "https://*.unpam.ac.id/my/courses.php",
+    "https://*.unpam.ac.id/course/view.php*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://*.unpam.ac.id/my/courses.php"],
+      "js": ["courses-page.js"]
+    },
+    {
+      "matches": ["https://*.unpam.ac.id/course/view.php*"],
+      "js": ["course-view.js"]
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}
