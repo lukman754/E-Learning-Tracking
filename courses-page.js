@@ -1,14 +1,12 @@
-const processedCourses = new Map(); // Store processed courses using Map for faster lookups
-const processedForums = new Set(); // Track processed forums
+const processedCourses = new Map();
+const processedForums = new Set();
 const cache = new Map();
-let batchSize = 3; // Process multiple items simultaneously
+let batchSize = 3;
 
-// Add delay function
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Save forum data to localStorage
 function saveForumData(forumData) {
   const data = {
     forumLink: forumData.forumLink,
@@ -34,10 +32,8 @@ function saveForumData(forumData) {
   localStorage.setItem("forumData", JSON.stringify(forums));
 }
 
-// Load forum data from localStorage
 function loadForumData() {
-  const forums = JSON.parse(localStorage.getItem("forumData") || "[]");
-  return forums;
+  return JSON.parse(localStorage.getItem("forumData") || "[]");
 }
 
 async function fetchWithCache(url) {
@@ -47,6 +43,7 @@ async function fetchWithCache(url) {
   cache.set(url, data);
   return data;
 }
+
 function createLogger() {
   const logger = document.createElement("div");
   logger.style.cssText = `
@@ -69,52 +66,79 @@ function createLogger() {
   return logger;
 }
 
-// Create refresh button
-function createRefreshButton(logger) {
-  const button = document.createElement("button");
-  button.innerHTML = "🔄 Lacak Ulang";
-  button.classList.add(
-    "btn",
-    "btn-warning",
-    "position-fixed",
-    "bottom-0",
-    "end-0",
-    "m-3",
-    "fw-bold",
-    "shadow-lg"
-  );
-  button.style.cssText = `
-    z-index: 9999;
-    transition: background-color 0.3s;
+function createHeaderButtons(container) {
+  const headerContainer = document.createElement("div");
+  headerContainer.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
   `;
 
-  button.addEventListener("mouseover", () => {
-    button.classList.add("btn-primary");
-    button.classList.remove("btn-warning");
-  });
+  const title = document.createElement("h4");
+  title.textContent = "Daftar Forum Diskusi";
+  title.style.margin = "0";
 
-  button.addEventListener("mouseout", () => {
-    button.classList.add("btn-warning");
-    button.classList.remove("btn-primary");
-  });
+  const refreshButton = document.createElement("button");
+  refreshButton.innerHTML = "🔄 Lacak Ulang";
+  refreshButton.classList.add("btn", "btn-warning", "btn-sm", "fw-bold");
 
-  button.addEventListener("click", async () => {
+  const copyButton = document.createElement("button");
+  copyButton.innerHTML = "📋 Salin Semua Link";
+  copyButton.classList.add("btn", "btn-primary", "btn-sm", "fw-bold");
+
+  refreshButton.addEventListener("click", async () => {
     localStorage.removeItem("forumData");
-    const container = findContainer();
-    if (container) {
-      const activitiesContainer = container.querySelector(
-        ".activities-container"
-      );
-      if (activitiesContainer) {
-        activitiesContainer.remove();
-      }
+    const activitiesContainer = container.querySelector(
+      ".activities-container"
+    );
+    if (activitiesContainer) {
+      activitiesContainer.remove();
     }
     startTracking();
   });
 
-  document.body.appendChild(button);
+  copyButton.addEventListener("click", () => {
+    const forums = Array.from(document.querySelectorAll(".forum-card"));
+    let forumData = "";
 
-  // Create watermark
+    forums.forEach((forum) => {
+      const activityName = forum
+        .querySelector(".card-header h3 a")
+        .textContent.trim();
+      const courseName = forum.querySelector(".text-muted").textContent.trim();
+      const discussions = Array.from(
+        forum.querySelectorAll(".list-group-item")
+      );
+
+      const forumNumber = activityName.match(/Forum (?:Diskusi )?(\d+)/i);
+      forumData += `\nForum Diskusi: ${forumNumber ? forumNumber[1] : "?"}\n`;
+      forumData += `Mata Kuliah: ${courseName}\n`;
+      forumData += "Topik:\n";
+
+      discussions.forEach((discussion, index) => {
+        forumData += `  ${index + 1}. ${discussion.textContent.trim()}: ${
+          discussion.href
+        }\n`;
+      });
+      forumData += "\n";
+    });
+
+    navigator.clipboard.writeText(forumData);
+    copyButton.innerHTML = "✅ Tersalin!";
+    setTimeout(() => {
+      copyButton.innerHTML = "📋 Salin Semua Link";
+    }, 2000);
+  });
+
+  headerContainer.appendChild(title);
+  headerContainer.appendChild(refreshButton);
+  headerContainer.appendChild(copyButton);
+
+  return headerContainer;
+}
+
+function createWatermark() {
   const watermark = document.createElement("div");
   watermark.style.cssText = `
     position: fixed;
@@ -136,7 +160,6 @@ function createRefreshButton(logger) {
     Extension by: <a href="https://github.com/Lukman754" target="_blank" style="color: black; text-decoration: none;">Lukman754</a>
   `;
 
-  // Close button for watermark
   const closeButton = document.createElement("button");
   closeButton.textContent = "×";
   closeButton.style.cssText = `
@@ -154,8 +177,6 @@ function createRefreshButton(logger) {
 
   watermark.appendChild(closeButton);
   document.body.appendChild(watermark);
-
-  return button;
 }
 
 function updateStatus(logger, message) {
@@ -290,7 +311,7 @@ function displayForum(container, info) {
         }
       </div>
     </div>
-`;
+  `;
 
   container.appendChild(card);
 }
@@ -337,7 +358,7 @@ async function processBatch(forums, container, logger) {
 }
 
 async function processCourse(url, container, logger) {
-  if (processedCourses.has(url)) return; // Skip already processed courses
+  if (processedCourses.has(url)) return;
   processedCourses.set(url, true);
 
   try {
@@ -355,7 +376,7 @@ async function processCourse(url, container, logger) {
 async function init() {
   const logger = createLogger();
   logger.className = "status-logger";
-  const refreshButton = createRefreshButton(logger);
+  createWatermark();
 
   updateStatus(logger, "Memuat data tersimpan...");
 
@@ -373,17 +394,18 @@ async function init() {
 
   const activitiesContainer = document.createElement("div");
   activitiesContainer.className = "activities-container";
-  activitiesContainer.innerHTML =
-    '<p class="activities-title">Daftar Forum Diskusi yang belum dikerjakan</p>';
+
+  // Add header with buttons
+  const headerButtons = createHeaderButtons(container);
+  activitiesContainer.appendChild(headerButtons);
+
   container.insertBefore(activitiesContainer, container.firstChild);
 
-  // Load and display cached data first
   const cachedForums = loadForumData();
   cachedForums.forEach((forumInfo) => {
     displayForum(activitiesContainer, forumInfo);
   });
 
-  // Wait before starting new scan
   updateStatus(logger, "Menunggu 5 detik sebelum memulai pencarian baru...");
   await delay(5000);
 
